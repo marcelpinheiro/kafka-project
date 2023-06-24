@@ -4,6 +4,8 @@ import requests
 import json
 import time
 from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
+
 
 # Coinbase API URL for cryptocurrency prices
 api_url = 'https://api.coinbase.com/v2/prices'
@@ -18,6 +20,7 @@ kafka_partition_count = 3
 kafka_replication_factor = 3
 
 # Elasticsearch configuration
+es_scheme = 'http'  # or 'https' if applicable
 es_host = 'localhost'
 es_port = 9200
 es_index = 'crypto_data_index'
@@ -35,7 +38,10 @@ producer_config = {
 }
 
 # Elasticsearch client
-es_client = Elasticsearch(hosts=[{'host': es_host, 'port': es_port}])
+es_client = Elasticsearch(
+    hosts=[{'host': es_host, 'port': es_port, 'scheme': es_scheme}],
+    headers={'Content-Type': 'application/json'}
+)
 
 # Kafka producer
 producer = Producer(producer_config)
@@ -62,14 +68,22 @@ def produce_crypto_data(symbol):
 
         # Index cryptocurrency data in Elasticsearch
         es_document = {
-            'symbol': symbol,
-            'price': crypto_price,
-            'timestamp': int(time.time())
+            '_index': es_index,
+            '_source': {
+                'symbol': symbol,
+                'price': crypto_price,
+                'timestamp': int(time.time())
+            }
         }
-        es_client.index(index=es_index, body=es_document)
+        actions = [es_document]
+
+        # Use the bulk function to efficiently index the documents
+        bulk(es_client, actions)
         print(f"Cryptocurrency data indexed in Elasticsearch index '{es_index}'")
     else:
         print(f"Failed to retrieve cryptocurrency data for symbol '{symbol}'")
+
+
 
 # Fetch and produce cryptocurrency data every 5 seconds
 while True:
