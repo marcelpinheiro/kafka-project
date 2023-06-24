@@ -3,9 +3,6 @@ from confluent_kafka import Producer
 import requests
 import json
 import time
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
-
 
 # Coinbase API URL for cryptocurrency prices
 api_url = 'https://api.coinbase.com/v2/prices'
@@ -19,12 +16,6 @@ kafka_topic = 'crypto_data'
 kafka_partition_count = 3
 kafka_replication_factor = 3
 
-# Elasticsearch configuration
-es_scheme = 'http'  # or 'https' if applicable
-es_host = 'localhost'
-es_port = 9200
-es_index = 'crypto_data_index'
-
 # Kafka admin client
 admin = AdminClient({'bootstrap.servers': kafka_broker})
 
@@ -37,14 +28,9 @@ producer_config = {
     'bootstrap.servers': kafka_broker
 }
 
-# Elasticsearch client
-es_client = Elasticsearch(
-    hosts=[{'host': es_host, 'port': es_port, 'scheme': es_scheme}],
-    headers={'Content-Type': 'application/json'}
-)
-
 # Kafka producer
 producer = Producer(producer_config)
+
 
 def get_crypto_price(symbol):
     url = f'{api_url}/{symbol}-USD/spot'
@@ -56,6 +42,7 @@ def get_crypto_price(symbol):
     else:
         return None
 
+
 def produce_crypto_data(symbol):
     crypto_price = get_crypto_price(symbol)
 
@@ -65,24 +52,8 @@ def produce_crypto_data(symbol):
         producer.produce(kafka_topic, value=message)
         producer.flush()
         print(f"Cryptocurrency data produced to Kafka topic '{kafka_topic}': {crypto_price} USD")
-
-        # Index cryptocurrency data in Elasticsearch
-        es_document = {
-            '_index': es_index,
-            '_source': {
-                'symbol': symbol,
-                'price': crypto_price,
-                'timestamp': int(time.time())
-            }
-        }
-        actions = [es_document]
-
-        # Use the bulk function to efficiently index the documents
-        bulk(es_client, actions)
-        print(f"Cryptocurrency data indexed in Elasticsearch index '{es_index}'")
     else:
         print(f"Failed to retrieve cryptocurrency data for symbol '{symbol}'")
-
 
 
 # Fetch and produce cryptocurrency data every 5 seconds
