@@ -51,7 +51,7 @@ def produce_crypto_data(symbol):
         message = json.dumps({'symbol': symbol, 'price': crypto_price}).encode('utf-8')
         producer.produce(kafka_topic, value=message)
         producer.flush()
-        print(f"Cryptocurrency data produced to Kafka topic '{kafka_topic}': {crypto_price} USD")
+        print(f"Cryptocurrency data produced to Kafka topic '{kafka_topic}': {symbol} {crypto_price} USD")
     else:
         print(f"Failed to retrieve cryptocurrency data for symbol '{symbol}'")
 

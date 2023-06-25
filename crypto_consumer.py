@@ -49,7 +49,7 @@ def consume_and_index():
                 '_index': es_index,
                 '_source': {
                     'symbol': crypto_data['symbol'],
-                    'price': crypto_data['price'],
+                    'price': float(crypto_data['price']),
                     'timestamp': int(time.time())
                 }
             }
@@ -57,7 +57,7 @@ def consume_and_index():
 
         # Use the bulk function to efficiently index the documents
         bulk(es_client, actions)
-        print(f"Cryptocurrency data indexed in Elasticsearch index '{es_index}'")
+        print(f"Cryptocurrency data indexed in Elasticsearch index '{es_index}: {crypto_data['symbol']} {crypto_data['price']} USD'")
 
     consumer.close()
 
